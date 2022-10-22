@@ -1,0 +1,86 @@
+# For entertainment purposes only.
+# This program will take advantage of a KNN cluster classification technique
+# and model. The goal is to build a KNN classifier using the data set provided
+# to predict a user favorite video game genre based on age, height, weight, and
+# gender. The input will be four floating point numbers of age in years, height
+# in inches, weight in pounds, and gender with female a zero and male a one.
+
+from csv import reader
+from math import sqrt
+
+def load_csv(filen):
+    data = list()
+    with open(filen, 'r', encoding='utf-8-sig') as file:
+        csv_reader = reader(file)
+        for row in csv_reader:
+            if not row:
+                continue
+            data.append(row)
+    return data
+
+def strtofloat(data, col):
+    for row in data:
+        row[col] = float(row[col].strip())
+
+def strtoint(data, col):
+    classvals = [row[col] for row in data]
+    single = set(classvals)
+    lookup = dict()
+    for i, value in enumerate(single):
+        lookup[value] = i
+        print('[%s] => %d' % (value, i))
+    for row in data:
+        row[col] = lookup[row[col]]
+    return lookup
+
+def dataminmax(data):
+    minmax = list()
+    for i in range(len(data[0])):
+        colvals = [row[i] for row in data]
+        valmin = min(colvals)
+        valmax = max(colvals)
+        minmax.append([valmin, valmax])
+    return minmax
+
+def normaldata(data, minmax):
+    for row in data:
+        for i in range(len(row)):
+            row[i] = (row[i]-minmax[i][0]) / (minmax[i][1]-minmax[i][0])
+
+def edistance(row1, row2):
+    distance = 0.0
+    for i in range(len(row1)-1):
+        distance += (row1[i]-row2[i])**2
+    return sqrt(distance)
+
+def getneighbors(train, testrow, nneighbors):
+    dists = list()
+    for trainrow in train:
+        dist = edistance(testrow, trainrow)
+        dists.append((trainrow, dist))
+    dists.sort(key=lambda tup: tup[1])
+    neighbors = list()
+    for i in range(nneighbors):
+        neighbors.append(dists[i][0])
+    return neighbors
+
+def predictclass(train, testrow, nneighbors):
+    neighbors = getneighbors(train, testrow, nneighbors)
+    outputvals = [row[-1] for row in neighbors]
+    prediction = max(set(outputvals), key=outputvals.count)
+    return prediction
+
+file = 'm2o2.csv'
+data = load_csv(file)
+for i in range(len(data[0])-1):
+    strtofloat(data, i)
+strtoint(data, len(data[0])-1)
+nneighbors = 8
+
+row = [ float(input('Enter Age in years: ')),
+          float(input('Enter Height in inches: ')),
+          float(input('Enter Weight in pounds: ')),
+          float(input('Enter Gender as 0 if female or 1 if male: '))]
+
+label = predictclass(data, row, nneighbors)
+print('Data=%s, Predicted: %s' % (row, label))
